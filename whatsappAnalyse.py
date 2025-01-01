@@ -61,7 +61,8 @@ def splitTimeStamp(timestamp: str):
     return (date, time)
 
 def splitInformation(information: str):
-    informationRegex = re.match(r"(?P<Sender>[\w\s]+): (?P<Text>.*)", information)
+    # sender name is either the contact name or a telephone number
+    informationRegex = re.match(r"(?P<Sender>([\w\s]+|([\+\d\s]+))): (?P<Text>.*)", information)
     if not informationRegex:
         return ("WhatsApp", information)
     
