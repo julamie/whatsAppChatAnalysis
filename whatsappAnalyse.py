@@ -121,7 +121,8 @@ def getUserWordFrequency(df: pd.DataFrame, name: str = "", top_n: int = 100):
     else:
         userMsg = df[df["Name"] == name]
 
-    # drop message <Medien ausgeschlossen>
+    # drop message <Media omitted> and <Medien ausgeschlossen> (german)
+    userMsg = userMsg[(userMsg["Message"] == "<Media omitted>") == False]
     userMsg = userMsg[(userMsg["Message"] == "<Medien ausgeschlossen>") == False]
 
     # ignore if word is in upper or lowercase
