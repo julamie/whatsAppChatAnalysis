@@ -235,7 +235,7 @@ def showUseOfWordsOverTime(df: pd.DataFrame, word: str, time_frame_in_days: int,
 
 # analyses an export of a WhatsApp Chat
 def startAnalysis():
-    origFilePath = "./[Chatfile].txt"
+    origFilePath = "[Chatfile].txt"
     preprocessedFilePath = "Chats/Preprocessed" + origFilePath
     origFilePath = "Chats/" + origFilePath
 
