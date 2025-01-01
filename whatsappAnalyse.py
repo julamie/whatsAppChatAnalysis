@@ -51,7 +51,7 @@ def convertTextToCSVFormat(data: str):
 
     return "\n".join(convertedData)
 
-def splitTimeStamp(timestamp: str) -> (str, str):
+def splitTimeStamp(timestamp: str):
     # no need for checking format, that has been handled previously
     date, time = timestamp.split(",", 1)
 
@@ -60,7 +60,7 @@ def splitTimeStamp(timestamp: str) -> (str, str):
 
     return (date, time)
 
-def splitInformation(information: str) -> (str, str):
+def splitInformation(information: str):
     informationRegex = re.match(r"(?P<Sender>[\w\s]+): (?P<Text>.*)", information)
     if not informationRegex:
         return ("WhatsApp", information)
