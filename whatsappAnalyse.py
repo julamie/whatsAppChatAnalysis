@@ -120,21 +120,18 @@ def replaceNanMessages(df: pd.DataFrame):
 
 # count how many messages everyone sent
 def countMessagesByName(df: pd.DataFrame):
-    print("Sent messages by user")
     return df.groupby("Name")["Message"] \
              .count() \
              .sort_values(ascending=False)
 
 # count how many words everyone sent
 def countWordsByName(df: pd.DataFrame):
-    print("Sent words by user")
     return df.groupby("Name")["Message word count"] \
              .sum() \
              .sort_values(ascending=False)
 
 # calculate the average number of words per message
 def calcAvrgWordsPerMessage(df: pd.DataFrame):
-    print("Average number of words per message")
     data = df.groupby("Name") \
         .agg({
             "Message": "count",
@@ -189,7 +186,7 @@ def getMessageFrequencyPerHour(df: pd.DataFrame, plot: bool = False):
     # count the messages sent in this hour
     data = data.groupby("Time")["Message"].count().to_frame()
     if plot:
-        data.plot(kind="bar", xlabel="Hour", ylabel="Messages sent")
+        data.plot(kind="bar", title= "Number of messages per hour", xlabel="Hour", ylabel="Messages sent")
     return data
 
 def getMessageFrequencyPerMemberPerHour(df: pd.DataFrame, plot: bool = False):
@@ -211,7 +208,8 @@ def getMessageFrequencyPerMemberPerHour(df: pd.DataFrame, plot: bool = False):
     data = data.fillna(0).astype(int)
     
     if plot:
-        data.plot(kind="bar", subplots=True, legend=False, figsize=(10,35), ylabel="Number of messages")
+        data.plot(kind="bar", title = "Number of messages per hour per user", subplots=True, 
+                  legend=False, figsize=(10,35), ylabel="Number of messages")
     return data
 
 def getMessageFrequencyPerDay(df: pd.DataFrame):
@@ -220,7 +218,7 @@ def getMessageFrequencyPerDay(df: pd.DataFrame):
                 .reset_index(name="Number of messages")
     
     # save Date as Datetime object to better sort 
-    msgPerDay["Date"] = pd.to_datetime(msgPerDay["Date"], format="%d.%m.%y")
+    msgPerDay["Date"] = pd.to_datetime(msgPerDay["Date"], format="mixed")
     msgPerDay = msgPerDay.sort_values(by="Date")
 
     return msgPerDay
@@ -233,7 +231,8 @@ def plotAvrgNumberOfMessagesInTimeFrame(df: pd.DataFrame, time_frame: str):
         msgPerDay = msgPerDay.groupby("Date").mean()
 
         day_names = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
-        plot = msgPerDay.plot.bar(xlabel="Weekday", ylabel="Number of messages sent")
+        plot = msgPerDay.plot.bar(xlabel="Weekday", title = "Average number of messages per day of the week",
+                                  ylabel="Number of messages sent")
         plot.set_xticklabels(day_names)
         return plot
 
@@ -243,7 +242,8 @@ def plotAvrgNumberOfMessagesInTimeFrame(df: pd.DataFrame, time_frame: str):
         msgPerWeek["Date"] = msgPerWeek["Date"].dt.isocalendar().week
         msgPerWeek = msgPerWeek.groupby("Date").mean()
 
-        return msgPerWeek.plot.bar(xlabel="Week", ylabel="Number of messages sent", figsize=(20,10))
+        return msgPerWeek.plot.bar(xlabel="Week", title= "Average number of messages for every week of the year",
+                                   ylabel="Number of messages sent", figsize=(20,10))
 
     # per month
     if time_frame == "Month":
@@ -252,7 +252,8 @@ def plotAvrgNumberOfMessagesInTimeFrame(df: pd.DataFrame, time_frame: str):
         msgPerMonth = msgPerMonth.groupby("Date").mean()
 
         month_names = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
-        plot = msgPerMonth.plot.bar(xlabel="Month", ylabel="Number of messages sent")
+        plot = msgPerMonth.plot.bar(xlabel="Month", title= "Average number of messages for every month of the year",
+                                    ylabel="Number of messages sent")
         plot.set_xticklabels(month_names)
         return plot
 
@@ -262,7 +263,7 @@ def showUseOfWordsOverTime(df: pd.DataFrame, word: str, time_frame_in_days: int,
         df = df[df["Name"] == name]
     
     # set the date as the index
-    df.loc[:, "Datetime"] = pd.to_datetime(df["Date"] + " " + df["Time"], format="%d.%m.%y %H:%M")
+    df.loc[:, "Datetime"] = pd.to_datetime(df["Date"] + " " + df["Time"], format="%d.%m.%Y %H:%M")
     df = df.sort_values(by="Datetime")
     df.index = df["Datetime"]
 
@@ -277,7 +278,7 @@ def showUseOfWordsOverTime(df: pd.DataFrame, word: str, time_frame_in_days: int,
 
 # analyses an export of a WhatsApp Chat
 def startAnalysis():
-    origFilePath = "[Chatfile].txt"
+    origFilePath = "[CHAT_EXPORT_FILE].txt"
     preprocessedFilePath = "Chats/Preprocessed" + origFilePath
     origFilePath = "Chats/" + origFilePath
 
@@ -287,14 +288,25 @@ def startAnalysis():
     df = postprocessData(df)
 
     # analysing data
-    countMessagesByName(df)
-    countWordsByName(df)
-    calcAvrgWordsPerMessage(df)
-    getUserWordFrequency(df)
+    print("Sent messages by user")
+    print(countMessagesByName(df))
+
+    print("Sent words by user")
+    print(countWordsByName(df))
+    
+    print("Average number of words per message")
+    print(calcAvrgWordsPerMessage(df))
+
+    print("Most used words in chat")
+    print(getUserWordFrequency(df)) # optional: name= and top_n=100
+
     getMessageFrequencyPerHour(df, plot=True)
+
     getMessageFrequencyPerMemberPerHour(df, plot=True)
+
     plotAvrgNumberOfMessagesInTimeFrame(df, "Day")
-    showUseOfWordsOverTime(df, "Word", time_frame_in_days=60)
+
+    showUseOfWordsOverTime(df, "[INSERT_WORD]", time_frame_in_days=60)
     plt.show()
 
 
