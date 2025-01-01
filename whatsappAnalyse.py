@@ -196,13 +196,18 @@ def plotAvrgNumberOfMessagesInTimeFrame(df: pd.DataFrame, time_frame: str):
         msgPerDay = getMessageFrequencyPerDay(df)
         msgPerDay["Date"] = msgPerDay["Date"].dt.dayofweek
         msgPerDay = msgPerDay.groupby("Date").mean()
-        return msgPerDay.plot.bar(xlabel="Weekday", ylabel="Number of messages sent")
+
+        day_names = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+        plot = msgPerDay.plot.bar(xlabel="Weekday", ylabel="Number of messages sent")
+        plot.set_xticklabels(day_names)
+        return plot
 
     # per week
     if time_frame == "Week":
         msgPerWeek = getMessageFrequencyPerDay(df)
         msgPerWeek["Date"] = msgPerWeek["Date"].dt.isocalendar().week
         msgPerWeek = msgPerWeek.groupby("Date").mean()
+
         return msgPerWeek.plot.bar(xlabel="Week", ylabel="Number of messages sent", figsize=(20,10))
 
     # per month
@@ -210,7 +215,11 @@ def plotAvrgNumberOfMessagesInTimeFrame(df: pd.DataFrame, time_frame: str):
         msgPerMonth = getMessageFrequencyPerDay(df)
         msgPerMonth["Date"] = msgPerMonth["Date"].dt.month
         msgPerMonth = msgPerMonth.groupby("Date").mean()
-        return msgPerMonth.plot.bar(xlabel="Month", ylabel="Number of messages sent")
+
+        month_names = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+        plot = msgPerMonth.plot.bar(xlabel="Month", ylabel="Number of messages sent")
+        plot.set_xticklabels(month_names)
+        return plot
 
 def showUseOfWordsOverTime(df: pd.DataFrame, word: str, time_frame_in_days: int, name: str = ""):
     # use only the messages of a certain person if specified
