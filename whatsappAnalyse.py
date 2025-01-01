@@ -52,13 +52,10 @@ def convertTextToCSVFormat(data: str):
     return "\n".join(convertedData)
 
 def splitTimeStamp(timestamp: str):
-    # no need for checking format, that has been handled previously
-    date, time = timestamp.split(",", 1)
+    # convert to date object
+    datetime = pd.to_datetime(timestamp, format="mixed", dayfirst=True)
 
-    # if the year has only two digits, put "20" in front of it to make it four digits
-    if (date[-3] == '.'): date = date[:-2] + "20" + date[-2:]
-
-    return (date, time)
+    return (datetime.date(), datetime.time())
 
 def splitInformation(information: str):
     # sender name is either the contact name or a telephone number
@@ -180,7 +177,7 @@ def getMessageFrequencyPerHour(df: pd.DataFrame, plot: bool = False):
     data = df[["Time", "Name", "Message"]]
     
     # set time of every message to full hour
-    hour_value = pd.to_datetime(data["Time"], format="%H:%M")
+    hour_value = pd.to_datetime(data["Time"], format="%H:%M:%S")
     hour_value = hour_value.dt.hour
     data.loc[:, "Time"] = hour_value
 
@@ -194,7 +191,7 @@ def getMessageFrequencyPerMemberPerHour(df: pd.DataFrame, plot: bool = False):
     data = df[["Time", "Name", "Message"]]
 
     # set time of every message to full hour
-    hour_value = pd.to_datetime(data["Time"], format="%H:%M")
+    hour_value = pd.to_datetime(data["Time"], format="%H:%M:%S")
     hour_value = hour_value.dt.hour
     data.loc[:, "Time"] = hour_value
 
@@ -219,7 +216,7 @@ def getMessageFrequencyPerDay(df: pd.DataFrame):
                 .reset_index(name="Number of messages")
     
     # save Date as Datetime object to better sort 
-    msgPerDay["Date"] = pd.to_datetime(msgPerDay["Date"], format="mixed")
+    msgPerDay["Date"] = pd.to_datetime(msgPerDay["Date"])
     msgPerDay = msgPerDay.sort_values(by="Date")
 
     return msgPerDay
@@ -264,7 +261,7 @@ def showUseOfWordsOverTime(df: pd.DataFrame, word: str, time_frame_in_days: int,
         df = df[df["Name"] == name]
     
     # set the date as the index
-    df.loc[:, "Datetime"] = pd.to_datetime(df["Date"] + " " + df["Time"], format="%d.%m.%Y %H:%M")
+    df.loc[:, "Datetime"] = pd.to_datetime(df["Date"] + " " + df["Time"])
     df = df.sort_values(by="Datetime")
     df.index = df["Datetime"]
 
