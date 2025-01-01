@@ -4,6 +4,18 @@ import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 
+# opens file, clears it from weird characters and saves result in new file
+def preprocessFile(oldPath: str, newPath: str):
+    with open(oldPath, encoding="utf-8") as origFile:
+        data = origFile.read()
+
+    data = removeZeroWidthSpace(data)
+    data = escapeSpecialChars(data)
+    data = convertTextToCSVFormat(data)
+    
+    with open(newPath, 'w', encoding="utf-8") as newFile:
+        newFile.write(data)
+
 # replace zero width character with empty character
 def removeZeroWidthSpace(data: str):
     return data.replace(u'\u200b', "")
@@ -14,22 +26,6 @@ def escapeSpecialChars(data: str):
     data = data.replace("\"", r"\"")
     data = data.replace("\'", r"\'")
     return data
-
-def splitTimeStamp(timestamp: str) -> (str, str):
-    # no need for checking format, that has been handled previously
-    date, time = timestamp.split(",", 1)
-
-    # if the year has only two digits, put "20" in front of it to make it four digits
-    if (date[-3] == '.'): date = date[:-2] + "20" + date[-2:]
-
-    return (date, time)
-
-def splitInformation(information: str) -> (str, str):
-    informationRegex = re.match(r"(?P<Sender>[\w\s]+): (?P<Text>.*)", information)
-    if not informationRegex:
-        return ("WhatsApp", information)
-    
-    return (informationRegex.group("Sender"), informationRegex.group("Text"))
 
 # edit format of file to csv, add quotation marks around messages and end message with EXT (End of text)
 def convertTextToCSVFormat(data: str):
@@ -55,15 +51,21 @@ def convertTextToCSVFormat(data: str):
 
     return "\n".join(convertedData)
 
-# opens file, clears it from weird characters and saves result in new file
-def preprocessFile(oldPath: str, newPath: str):
-    with open(oldPath, encoding="utf-8") as origFile:
-        with open(newPath, 'w', encoding="utf-8") as newFile:
-            data = origFile.read()
-            data = removeZeroWidthSpace(data)
-            data = escapeSpecialChars(data)
-            data = convertTextToCSVFormat(data)
-            newFile.write(data)
+def splitTimeStamp(timestamp: str) -> (str, str):
+    # no need for checking format, that has been handled previously
+    date, time = timestamp.split(",", 1)
+
+    # if the year has only two digits, put "20" in front of it to make it four digits
+    if (date[-3] == '.'): date = date[:-2] + "20" + date[-2:]
+
+    return (date, time)
+
+def splitInformation(information: str) -> (str, str):
+    informationRegex = re.match(r"(?P<Sender>[\w\s]+): (?P<Text>.*)", information)
+    if not informationRegex:
+        return ("WhatsApp", information)
+    
+    return (informationRegex.group("Sender"), informationRegex.group("Text"))
 
 # converts our preprocessed file into a pandas dataframe
 def convertFileToDataframe(path: str):
