@@ -13,23 +13,47 @@ def escapeSpecialChars(data: str):
     data = data.replace("\\", r"\\")
     data = data.replace("\"", r"\"")
     data = data.replace("\'", r"\'")
-    data = data.replace("|", r"\|")
     return data
 
-# edit format of file to csv, add quotation marks around messages and end message with |
+def splitTimeStamp(timestamp: str) -> (str, str):
+    # no need for checking format, that has been handled previously
+    date, time = timestamp.split(",", 1)
+
+    # if the year has only two digits, put "20" in front of it to make it four digits
+    if (date[-3] == '.'): date = date[:-2] + "20" + date[-2:]
+
+    return (date, time)
+
+def splitInformation(information: str) -> (str, str):
+    informationRegex = re.match(r"(?P<Sender>[\w\s]+): (?P<Text>.*)", information)
+    if not informationRegex:
+        return ("WhatsApp", information)
+    
+    return (informationRegex.group("Sender"), informationRegex.group("Text"))
+
+# edit format of file to csv, add quotation marks around messages and end message with EXT (End of text)
 def convertTextToCSVFormat(data: str):
-    # Yes, I know this looks cursed
-    data = re.sub(r"(\d\d.\d\d.\d\d), (\d\d:\d\d) - ([\w\s]+): (.*)\n", "\"|\\n\\1, \\2, \\3, \"\\4", data)
+    convertedData = ""
 
-    # because of the nature of this regex, there is a "| too much at the beginning
-    # and a "| too little at the end
-    data = data[3:] # remove ", | and \n
-    data = data + '\"|' # add " and \n
+    # Line format: Date, Time - Sender: Message
+    # Allowed date format examples 24.12.24, 24.12.2024, 24/12/24, 24/12/2024
+    pattern = re.compile(r"(?P<Timestamp>\d{2}[./]\d{2}[./](\d{2}|\d{4}), \d{2}:\d{2}) - (?P<Message>.*)")
+    date, time, name, message = "Date", "Time", "Name", "Message"
 
-    # add names for columns at beginning of file
-    data = "Date,Time,Name,Message|\n" + data
+    convertedData = []
+    for line in data.split("\n"):
+        newMessageRegex = pattern.match(line)
+        if newMessageRegex:
+            convertedData.append(f"{date}, {time}, {name}, {message}\x03\n") # \x03 is the escape char for End of Text
+            timestamp = newMessageRegex.group("Timestamp")
+            information = newMessageRegex.group("Message")
 
-    return data
+            (date, time) = splitTimeStamp(timestamp)
+            (name, message) = splitInformation(information)
+        else: 
+            message += "\n" + line
+
+    return "\n".join(convertedData)
 
 # opens file, clears it from weird characters and saves result in new file
 def preprocessFile(oldPath: str, newPath: str):
@@ -43,12 +67,13 @@ def preprocessFile(oldPath: str, newPath: str):
 
 # converts our preprocessed file into a pandas dataframe
 def convertFileToDataframe(path: str):
-    df = pd.read_csv(path, usecols=range(4), skipinitialspace=True, lineterminator="|", encoding="utf-8")
-
+    df = pd.read_csv(path, usecols=range(4), skipinitialspace=True, lineterminator="\x03", encoding="utf-8")
+    
     # show full length of message when printing
     pd.set_option("max_colwidth", None)
     pd.set_option("max_seq_item", None)
-
+    
+    df = df.iloc[:-1] # remove last entry, because it is an empty line
     return df
 
 # removes the beginning \r\n from the dates
