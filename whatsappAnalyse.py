@@ -86,18 +86,16 @@ def postprocessData(df: pd.DataFrame):
 # count how many messages everyone sent
 def countMessagesByName(df: pd.DataFrame):
     print("Sent messages by user")
-    print(df.groupby("Name") \
-        .count() \
-        .sort_values(by="Message", ascending=False)["Message"])
-    print()
+    return df.groupby("Name")["Message"] \
+             .count() \
+             .sort_values(ascending=False)
 
 # count how many words everyone sent
 def countWordsByName(df: pd.DataFrame):
     print("Sent words by user")
-    print(df.groupby("Name") \
-        .sum() \
-        .sort_values(by="Message word count", ascending=False)["Message word count"])
-    print()
+    return df.groupby("Name")["Message word count"] \
+             .sum() \
+             .sort_values(ascending=False)
 
 # calculate the average number of words per message
 def calcAvrgWordsPerMessage(df: pd.DataFrame):
@@ -110,8 +108,7 @@ def calcAvrgWordsPerMessage(df: pd.DataFrame):
         })
     data["length/message"] = data["Message length"] / data["Message"]
     data["words/message"] = data["Message word count"] / data["Message"]
-    print(data.sort_values(by="words/message", ascending=False))
-    print()
+    return data.sort_values(by="Message", ascending=False)
 
 # returns the frequency of words a member of the group has said
 def getUserWordFrequency(df: pd.DataFrame, name: str = "", top_n: int = 100):
@@ -143,8 +140,8 @@ def getUserWordFrequency(df: pd.DataFrame, name: str = "", top_n: int = 100):
                 .sort_values(by="Message word count", ascending=False)
 
     counts = counts.reset_index()
-    print(counts.head(top_n))
-    return counts
+
+    return counts.head(top_n)
 
 def getMessageFrequencyPerHour(df: pd.DataFrame, plot: bool = False):
     data = df[["Time", "Name", "Message"]]
