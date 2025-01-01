@@ -76,27 +76,6 @@ def convertFileToDataframe(path: str):
     df = df.iloc[:-1] # remove last entry, because it is an empty line
     return df
 
-# removes the beginning \r\n from the dates
-def removeBeginningSpecialChars(df: pd.DataFrame):
-    df["Date"] = df["Date"].replace(r"\r\n", "", regex=True)
-    return df
-
-# removes the \ from escaped chars in message
-def revertEscapedChars(df: pd.DataFrame):
-    # I don't exactly know why this one works, but it works
-    df["Message"] = df["Message"].replace(r"\\\\", "\\\\", regex=True)
-    df["Message"] = df["Message"].replace(r"\"", "\"", regex=True)
-    df["Message"] = df["Message"].replace(r"\\'", "\'", regex=True)
-    df["Message"] = df["Message"].replace(r"\|", "|", regex=True)
-
-# adds length of message as a column to dataframe
-def addColumnMessageLength(df: pd.DataFrame):
-    df["Message length"] = df["Message"].str.len()
-
-# adds number of words in message as a column
-def addColumnNumberOfWords(df: pd.DataFrame):
-    df["Message word count"] = df["Message"].apply(lambda x: len(str(x).split(' ')))
-
 # cleans the dataframe after creation
 def postprocessData(df: pd.DataFrame):
     # clean data
@@ -106,7 +85,36 @@ def postprocessData(df: pd.DataFrame):
     # add new data
     addColumnMessageLength(df)
     addColumnNumberOfWords(df)
+
+    # replace false data
+    replaceNanMessages(df)
     return df
+
+# removes the beginning \r\n from the dates
+def removeBeginningSpecialChars(df: pd.DataFrame):
+    df["Date"] = df["Date"].replace(r"\r\n", "", regex=True)
+    return df
+
+# removes the \ from escaped chars in message
+def revertEscapedChars(df: pd.DataFrame):
+    # I don't exactly know why this one works, but it works
+    df["Message"] = df["Message"].replace(r"\\\\", "\\\\", regex=True)
+    df["Message"] = df["Message"].replace(r"\\\"", "\"", regex=True)
+    df["Message"] = df["Message"].replace(r"\\\'", "\'", regex=True)
+
+# adds length of message as a column to dataframe
+def addColumnMessageLength(df: pd.DataFrame):
+    df["Message length"] = df["Message"].str.len()
+
+# adds number of words in message as a column
+def addColumnNumberOfWords(df: pd.DataFrame):
+    df["Message word count"] = df["Message"].apply(lambda x: len(str(x).split(' ')))
+
+# changes messages which are NaN to the correct ones: One time messages
+def replaceNanMessages(df: pd.DataFrame):
+    df["Message"] = df["Message"].fillna("<Media omitted>")
+    df["Message length"] = df["Message length"].fillna(15)
+    df["Message word count"] = df["Message word count"].fillna(2)
 
 # count how many messages everyone sent
 def countMessagesByName(df: pd.DataFrame):
