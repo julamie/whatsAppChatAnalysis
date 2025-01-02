@@ -29,8 +29,6 @@ def escapeSpecialChars(data: str):
 
 # edit format of file to csv, add quotation marks around messages and end message with EXT (End of text)
 def convertTextToCSVFormat(data: str):
-    convertedData = ""
-
     # Line format: Date, Time - Sender: Message
     # Allowed date format examples 24.12.24, 24.12.2024, 24/12/24, 24/12/2024
     pattern = re.compile(r"(?P<Timestamp>\d{2}[./]\d{2}[./](\d{2}|\d{4}), \d{2}:\d{2}) - (?P<Message>.*)")
@@ -39,6 +37,8 @@ def convertTextToCSVFormat(data: str):
     convertedData = []
     for line in data.split("\n"):
         newMessageRegex = pattern.match(line)
+
+        # determine the parts of the message and save them to converted data as soon as a new message appears
         if newMessageRegex:
             convertedData.append(f"{date}, {time}, {name}, {message}\x03\n") # \x03 is the escape char for End of Text
             timestamp = newMessageRegex.group("Timestamp")
@@ -46,6 +46,7 @@ def convertTextToCSVFormat(data: str):
 
             (date, time) = splitTimeStamp(timestamp)
             (name, message) = splitInformation(information)
+        # the message continues at a new line, add them to the current message
         else: 
             message += "\n" + line
 
@@ -60,6 +61,9 @@ def splitTimeStamp(timestamp: str):
 def splitInformation(information: str):
     # sender name is either the contact name or a telephone number
     informationRegex = re.match(r"(?P<Sender>([\w\s]+|([\+\d\s]+))): (?P<Text>.*)", information)
+
+    # if there is no sender, the message has been an information from the WhatsApp application
+    # example: X has left the chat
     if not informationRegex:
         return ("WhatsApp", information)
     
@@ -136,6 +140,7 @@ def calcAvrgWordsPerMessage(df: pd.DataFrame):
             "Message length": "sum",
             "Message word count": "sum"
         })
+    
     data["length/message"] = data["Message length"] / data["Message"]
     data["words/message"] = data["Message word count"] / data["Message"]
     return data.sort_values(by="Message", ascending=False)
@@ -164,7 +169,7 @@ def getUserWordFrequency(df: pd.DataFrame, name: str = "", top_n: int = 100):
     # remove special chars before or after words
     userMsg["word"] = userMsg["word"].str.strip(",:().*?!")
 
-    # count all occurrences of words in Justin's messages
+    # count all occurrences of words in the messages
     counts = userMsg[["word", "Message word count"]] \
                 .groupby("word").count() \
                 .sort_values(by="Message word count", ascending=False)
@@ -302,7 +307,7 @@ def startAnalysis():
 
     getMessageFrequencyPerMemberPerHour(df, plot=True)
 
-    plotAvrgNumberOfMessagesInTimeFrame(df, "Day")
+    plotAvrgNumberOfMessagesInTimeFrame(df, time_frame="Day") # time frames: "Day", "Week", "Month"
 
     showUseOfWordsOverTime(df, "[INSERT_WORD]", time_frame_in_days=60)
     plt.show()
