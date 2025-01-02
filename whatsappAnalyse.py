@@ -211,8 +211,9 @@ def getMessageFrequencyPerMemberPerHour(df: pd.DataFrame, plot: bool = False):
     data = data.fillna(0).astype(int)
     
     if plot:
+        numberOfUsers = df["Name"].nunique()
         data.plot(kind="bar", title = "Number of messages per hour per user", subplots=True, 
-                  legend=False, figsize=(10,35), ylabel="Number of messages")
+                  legend=False, figsize=(10, 3 * numberOfUsers), ylabel="Number of messages")
     return data
 
 def getMessageFrequencyPerDay(df: pd.DataFrame):
