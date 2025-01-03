@@ -30,7 +30,7 @@ def convertTextToCSVFormat(data: str):
     # Line format: Date, Time - Sender: Message
     # Allowed date format examples 24.12.24, 24.12.2024, 24/12/24, 24/12/2024
     pattern = re.compile(r"(?P<Timestamp>\d{2}[./]\d{2}[./](\d{2}|\d{4}), \d{2}:\d{2}) - (?P<Message>.*)")
-    date, time, name, message = "Date", "Time", "Name", "Message"
+    timestamp, name, message = "Timestamp", "Name", "Message"
 
     convertedData = []
     for line in data.split("\n"):
@@ -38,23 +38,16 @@ def convertTextToCSVFormat(data: str):
 
         # determine the parts of the message and save them to converted data as soon as a new message appears
         if newMessageRegex:
-            convertedData.append(f"{date}, {time}, {name}, {message}\x03") # \x03 is the escape char for End of Text
+            convertedData.append(f"{timestamp}\t{name}\t{message}\x03") # \x03 is the escape char for End of Text
             timestamp = newMessageRegex.group("Timestamp")
             information = newMessageRegex.group("Message")
 
-            (date, time) = splitTimeStamp(timestamp)
             (name, message) = splitInformation(information)
         # the message continues at a new line, add them to the current message
         else: 
             message += "\n" + line
 
     return "\n".join(convertedData)
-
-def splitTimeStamp(timestamp: str):
-    # convert to date object
-    datetime = pd.to_datetime(timestamp, format="mixed", dayfirst=True)
-
-    return (datetime.date(), datetime.time())
 
 def splitInformation(information: str):
     # sender name is either the contact name or a telephone number
@@ -68,32 +61,26 @@ def splitInformation(information: str):
     # surround message by double quotes
     return (informationRegex.group("Sender"), '"' + informationRegex.group("Text") + '"')
 
-# converts our preprocessed file into a pandas dataframe
 def convertFileToDataframe(path: str):
-    df = pd.read_csv(path, usecols=range(4), skipinitialspace=True, lineterminator="\x03", encoding="utf-8")
-    
+    df = pd.read_csv(path, usecols=range(3), skipinitialspace=True,
+                     lineterminator="\x03", escapechar='\\',
+                     delimiter="\t", parse_dates=["Timestamp"],
+                     date_format="mixed", dayfirst=True, 
+                     encoding="utf-8")
     # show full length of message when printing
     pd.set_option("max_colwidth", None)
     pd.set_option("max_seq_item", None)
-    
+
     return df
 
 # cleans the dataframe after creation
 def postprocessData(df: pd.DataFrame):
-    # clean data
-    removeBeginningSpecialChars(df)
-
     # add new data
     addColumnMessageLength(df)
     addColumnNumberOfWords(df)
 
     # replace false data
     replaceNanMessages(df)
-    return df
-
-# removes the beginning \r\n from the dates
-def removeBeginningSpecialChars(df: pd.DataFrame):
-    df["Date"] = df["Date"].replace(r"\r\n", "", regex=True)
     return df
 
 # adds length of message as a column to dataframe
@@ -169,44 +156,36 @@ def getUserWordFrequency(df: pd.DataFrame, name: str = "", top_n: int = 100):
     return counts.head(top_n)
 
 def getMessageFrequencyPerHour(df: pd.DataFrame, plot: bool = False):
-    data = df[["Time", "Name", "Message"]]
-    
     # set time of every message to full hour
-    hour_value = pd.to_datetime(data["Time"], format="%H:%M:%S")
-    hour_value = hour_value.dt.hour
-    data.loc[:, "Time"] = hour_value
+    df["Hour"] = df["Timestamp"].dt.hour
 
     # count the messages sent in this hour
-    data = data.groupby("Time")["Message"].count().to_frame()
+    df = df.groupby("Hour")["Message"].count().to_frame()
     if plot:
-        data.plot(kind="bar", title= "Number of messages per hour", xlabel="Hour", ylabel="Messages sent")
-    return data
+        df.plot(kind="bar", title="Number of messages per hour", xlabel="Hour", ylabel="Messages sent")
+    return df
 
 def getMessageFrequencyPerMemberPerHour(df: pd.DataFrame, plot: bool = False):
-    data = df[["Time", "Name", "Message"]]
-
     # set time of every message to full hour
-    hour_value = pd.to_datetime(data["Time"], format="%H:%M:%S")
-    hour_value = hour_value.dt.hour
-    data.loc[:, "Time"] = hour_value
+    df["Hour"] = df["Timestamp"].dt.hour
 
     # count the messages sent in this hour
-    data = data.groupby(["Name", "Time"])["Message"].count().to_frame()
+    df = df.groupby(["Name", "Hour"])["Message"].count().to_frame()
     
     # pivot table for more compact display
-    data.reset_index(inplace=True)
-    data = pd.pivot_table(data=data, index='Time', columns='Name', values='Message')
+    df = pd.pivot_table(data=df, index='Hour', columns='Name', values='Message')
     
     # fill NaN with 0 and change datatype back to int
-    data = data.fillna(0).astype(int)
+    df = df.fillna(0).astype(int)
     
     if plot:
-        numberOfUsers = df["Name"].nunique()
-        data.plot(kind="bar", title = "Number of messages per hour per user", subplots=True, 
-                  legend=False, figsize=(10, 3 * numberOfUsers), ylabel="Number of messages")
-    return data
+        numberOfUsers = df.shape[1]
+        df.plot(kind="bar", subplots=True, 
+                legend=False, figsize=(10, 3 * numberOfUsers), ylabel="Number of messages")
+    return df
 
 def getMessageFrequencyPerDay(df: pd.DataFrame):
+    df["Date"] = df["Timestamp"].dt.date
     msgPerDay = df.groupby("Date")["Date"] \
                 .count() \
                 .reset_index(name="Number of messages")
@@ -257,9 +236,8 @@ def showUseOfWordsOverTime(df: pd.DataFrame, word: str, time_frame_in_days: int,
         df = df[df["Name"] == name]
     
     # set the date as the index
-    df.loc[:, "Datetime"] = pd.to_datetime(df["Date"] + " " + df["Time"])
-    df = df.sort_values(by="Datetime")
-    df.index = df["Datetime"]
+    df = df.sort_values(by="Timestamp")
+    df.index = df["Timestamp"]
 
     # filter out the messages where one of the words are mentioned
     word_mentions = df[df["Message"].str.contains(word, na=False)]
