@@ -22,7 +22,7 @@ def removeZeroWidthSpace(data: str):
 
 # escape double quotes with \ to prevent messing with the data when converting
 def escapeDoubleQuotesInData(data: str):
-    data = data.replace('"', '\"')
+    data = data.replace('"', r'\"')
     return data
 
 # edit format of file to csv, add quotation marks around messages and end message with EXT (End of text)
