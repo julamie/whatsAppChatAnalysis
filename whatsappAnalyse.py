@@ -10,7 +10,7 @@ def preprocessFile(oldPath: str, newPath: str):
         data = origFile.read()
 
     data = removeZeroWidthSpace(data)
-    data = escapeSpecialChars(data)
+    data = escapeDoubleQuotesInData(data)
     data = convertTextToCSVFormat(data)
     
     with open(newPath, 'w', encoding="utf-8") as newFile:
@@ -20,11 +20,9 @@ def preprocessFile(oldPath: str, newPath: str):
 def removeZeroWidthSpace(data: str):
     return data.replace(u'\u200b', "")
 
-# escape special characters with \ to prevent messing with the data when converting
-def escapeSpecialChars(data: str):
-    data = data.replace("\\", r"\\")
-    data = data.replace("\"", r"\"")
-    data = data.replace("\'", r"\'")
+# escape double quotes with \ to prevent messing with the data when converting
+def escapeDoubleQuotesInData(data: str):
+    data = data.replace('"', '\"')
     return data
 
 # edit format of file to csv, add quotation marks around messages and end message with EXT (End of text)
@@ -40,7 +38,7 @@ def convertTextToCSVFormat(data: str):
 
         # determine the parts of the message and save them to converted data as soon as a new message appears
         if newMessageRegex:
-            convertedData.append(f"{date}, {time}, {name}, {message}\x03\n") # \x03 is the escape char for End of Text
+            convertedData.append(f"{date}, {time}, {name}, {message}\x03") # \x03 is the escape char for End of Text
             timestamp = newMessageRegex.group("Timestamp")
             information = newMessageRegex.group("Message")
 
@@ -65,9 +63,10 @@ def splitInformation(information: str):
     # if there is no sender, the message has been an information from the WhatsApp application
     # example: X has left the chat
     if not informationRegex:
-        return ("WhatsApp", information)
-    
-    return (informationRegex.group("Sender"), informationRegex.group("Text"))
+        return ("WhatsApp", '"' + information + '"')
+
+    # surround message by double quotes
+    return (informationRegex.group("Sender"), '"' + informationRegex.group("Text") + '"')
 
 # converts our preprocessed file into a pandas dataframe
 def convertFileToDataframe(path: str):
@@ -77,14 +76,12 @@ def convertFileToDataframe(path: str):
     pd.set_option("max_colwidth", None)
     pd.set_option("max_seq_item", None)
     
-    df = df.iloc[:-1] # remove last entry, because it is an empty line
     return df
 
 # cleans the dataframe after creation
 def postprocessData(df: pd.DataFrame):
     # clean data
     removeBeginningSpecialChars(df)
-    revertEscapedChars(df)
 
     # add new data
     addColumnMessageLength(df)
@@ -98,13 +95,6 @@ def postprocessData(df: pd.DataFrame):
 def removeBeginningSpecialChars(df: pd.DataFrame):
     df["Date"] = df["Date"].replace(r"\r\n", "", regex=True)
     return df
-
-# removes the \ from escaped chars in message
-def revertEscapedChars(df: pd.DataFrame):
-    # I don't exactly know why this one works, but it works
-    df["Message"] = df["Message"].replace(r"\\\\", "\\\\", regex=True)
-    df["Message"] = df["Message"].replace(r"\\\"", "\"", regex=True)
-    df["Message"] = df["Message"].replace(r"\\\'", "\'", regex=True)
 
 # adds length of message as a column to dataframe
 def addColumnMessageLength(df: pd.DataFrame):
