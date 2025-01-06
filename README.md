@@ -18,4 +18,4 @@ You can use this little script to see some useful statistics about your private 
 * Show the top 100 words of somebody
 * Show the number of sent messages, grouped by the hour of the day, or day
 * Show the average number of messages sent over a day, week or month
-* Show the number a word has been used over time 
+* Show the number of messages per week, shown as a line for every person
