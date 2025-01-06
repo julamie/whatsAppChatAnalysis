@@ -230,23 +230,22 @@ def plotAvrgNumberOfMessagesInTimeFrame(df: pd.DataFrame, time_frame: str):
         plot.set_xticklabels(month_names)
         return plot
 
-def showUseOfWordsOverTime(df: pd.DataFrame, word: str, time_frame_in_days: int, name: str = ""):
-    # use only the messages of a certain person if specified
-    if name:
-        df = df[df["Name"] == name]
-    
-    # set the date as the index
-    df = df.sort_values(by="Timestamp")
-    df.index = df["Timestamp"]
+def showMessageCountOverTime(df: pd.DataFrame, names: list = []):
+    # use only the messages of certain persons if specified
+    if names:
+        data = df[df["Name"].isin(names)]
+    else:
+        # ignore meta data (pun unintended)
+        data = df[df["Name"] != "WhatsApp"]
 
-    # filter out the messages where one of the words are mentioned
-    word_mentions = df[df["Message"].str.contains(word, na=False)]
+    # save the week of sent messages
+    data.loc[:, "Week"] = data.loc[:, "Timestamp"].dt.to_period("W")
 
-    # create rolling window of mentions
-    word_rolling = word_mentions["Message"].rolling(str(time_frame_in_days) + "D").count()
+    # count the number of messages per week per person
+    data = data.groupby(["Name", "Week"])["Message"].count().reset_index()
+    data = data.pivot(index="Week", columns="Name", values="Message")
 
-    # plot the rolling series
-    return word_rolling.plot(kind="line")
+    return data.plot(kind="line", legend=True)
 
 # analyses an export of a WhatsApp Chat
 def startAnalysis():
@@ -278,7 +277,7 @@ def startAnalysis():
 
     plotAvrgNumberOfMessagesInTimeFrame(df, time_frame="Day") # time frames: "Day", "Week", "Month"
 
-    showUseOfWordsOverTime(df, "[INSERT_WORD]", time_frame_in_days=60)
+    showMessageCountOverTime(df, "[INSERT_WORD]") # names= optional
     plt.show()
 
 
